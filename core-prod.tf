@@ -24,7 +24,7 @@ locals {
 }
 
 module "prod-sec-project" {
-  source          = "../../../modules/project"
+  source = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git/modules/project?ref=v18.0.0"
   name            = "prod-sec-core-0"
   parent          = var.folder_ids.security
   prefix          = var.prefix
@@ -38,7 +38,7 @@ module "prod-sec-project" {
 
 module "prod-sec-kms" {
   for_each   = toset(local.kms_locations)
-  source     = "../../../modules/kms"
+  source = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git/modules/kms?ref=v18.0.0"
   project_id = module.prod-sec-project.project_id
   keyring = {
     location = each.key
