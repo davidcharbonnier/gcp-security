@@ -17,14 +17,14 @@
 locals {
   prod_kms_restricted_admins = [
     for sa in compact([
-      var.service_accounts.project-factory-prod,
-      var.service_accounts.data-platform-prod
+      var.service_accounts.data-platform-prod,
+      var.service_accounts.project-factory-prod
     ]) : "serviceAccount:${sa}"
   ]
 }
 
 module "prod-sec-project" {
-  source = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/project?ref=v18.0.0"
+  source          = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/project?ref=v21.0.0"
   name            = "prod-sec-core-0"
   parent          = var.folder_ids.security
   prefix          = var.prefix
@@ -38,7 +38,7 @@ module "prod-sec-project" {
 
 module "prod-sec-kms" {
   for_each   = toset(local.kms_locations)
-  source = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/kms?ref=v18.0.0"
+  source     = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/kms?ref=v21.0.0"
   project_id = module.prod-sec-project.project_id
   keyring = {
     location = each.key
