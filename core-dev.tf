@@ -25,7 +25,7 @@ locals {
 }
 
 module "dev-sec-project" {
-  source          = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/project?ref=v21.0.0"
+  source          = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/project?ref=v24.0.0"
   name            = "dev-sec-core-0"
   parent          = var.folder_ids.security
   prefix          = var.prefix
@@ -39,7 +39,7 @@ module "dev-sec-project" {
 
 module "dev-sec-kms" {
   for_each   = toset(local.kms_locations)
-  source     = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/kms?ref=v21.0.0"
+  source     = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/kms?ref=v24.0.0"
   project_id = module.dev-sec-project.project_id
   keyring = {
     location = each.key
