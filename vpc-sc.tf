@@ -54,7 +54,7 @@ locals {
 }
 
 module "vpc-sc" {
-  source = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/vpc-sc?ref=v24.0.0"
+  source = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/vpc-sc?ref=v25.0.0"
   # only enable if we have projects defined for perimeters
   count         = anytrue([for k, v in local.vpc_sc_counts : v > 0]) ? 1 : 0
   access_policy = null
