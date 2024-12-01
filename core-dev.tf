@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,15 @@
 
 locals {
   dev_kms_restricted_admins = [
-    for sa in compact([
+    for sa in distinct(compact([
       var.service_accounts.data-platform-dev,
-      var.service_accounts.project-factory-dev,
-      #var.service_accounts.project-factory-prod
-    ]) : "serviceAccount:${sa}"
+      var.service_accounts.project-factory-dev
+    ])) : "serviceAccount:${sa}"
   ]
 }
 
 module "dev-sec-project" {
-  source          = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/project?ref=v25.0.0"
+  source          = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/project?ref=v26.0.0"
   name            = "dev-sec-core-0"
   parent          = var.folder_ids.security
   prefix          = var.prefix
@@ -33,42 +32,23 @@ module "dev-sec-project" {
   iam = {
     "roles/cloudkms.viewer" = local.dev_kms_restricted_admins
   }
+  iam_bindings_additive = {
+    for member in local.dev_kms_restricted_admins :
+    "kms_restricted_admin.${member}" => merge(local.kms_restricted_admin_template, {
+      member = member
+    })
+  }
   labels   = { environment = "dev", team = "security" }
   services = local.project_services
 }
 
 module "dev-sec-kms" {
   for_each   = toset(local.kms_locations)
-  source     = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/kms?ref=v25.0.0"
+  source     = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/kms?ref=v26.0.0"
   project_id = module.dev-sec-project.project_id
   keyring = {
     location = each.key
     name     = "dev-${each.key}"
   }
-  # rename to `key_iam` to switch to authoritative bindings
-  key_iam_additive = {
-    for k, v in local.kms_locations_keys[each.key] : k => v.iam
-  }
   keys = local.kms_locations_keys[each.key]
-}
-
-# TODO(ludo): add support for conditions to Fabric modules
-
-resource "google_project_iam_member" "dev_key_admin_delegated" {
-  for_each = toset(local.dev_kms_restricted_admins)
-  project  = module.dev-sec-project.project_id
-  role     = "roles/cloudkms.admin"
-  member   = each.key
-  condition {
-    title       = "kms_sa_delegated_grants"
-    description = "Automation service account delegated grants."
-    expression = format(
-      "api.getAttribute('iam.googleapis.com/modifiedGrantsByRole', []).hasOnly([%s]) && resource.type == 'cloudkms.googleapis.com/CryptoKey'",
-      join(",", formatlist("'%s'", [
-        "roles/cloudkms.cryptoKeyEncrypterDecrypter",
-        "roles/cloudkms.cryptoKeyEncrypterDecrypterViaDelegation"
-      ]))
-    )
-  }
-  depends_on = [module.dev-sec-project]
 }
