@@ -53,3 +53,16 @@ locals {
     "stackdriver.googleapis.com"
   ]
 }
+
+module "folder" {
+  source        = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/folder?ref=v30.0.0"
+  parent        = "organizations/${var.organization.id}"
+  name          = "Security"
+  folder_create = var.folder_ids.security == null
+  id            = var.folder_ids.security
+  contacts = (
+    var.essential_contacts == null
+    ? {}
+    : { (var.essential_contacts) = ["ALL"] }
+  )
+}
