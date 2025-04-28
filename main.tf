@@ -55,7 +55,7 @@ locals {
 }
 
 module "folder" {
-  source        = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/folder?ref=v32.0.1"
+  source        = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/folder?ref=v33.0.0"
   parent        = "organizations/${var.organization.id}"
   name          = "Security"
   folder_create = var.folder_ids.security == null
