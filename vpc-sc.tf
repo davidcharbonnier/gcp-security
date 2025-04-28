@@ -50,9 +50,9 @@ locals {
 }
 
 module "vpc-sc-discovery" {
-  source           = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/projects-data-source?ref=v31.1.0"
+  source           = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/projects-data-source?ref=v32.0.1"
   count            = var.vpc_sc.resource_discovery.enabled == true ? 1 : 0
-  parent           = "organizations/${var.organization.id}"
+  parent           = coalesce(var.root_node, "organizations/${var.organization.id}")
   ignore_folders   = var.vpc_sc.resource_discovery.ignore_folders
   ignore_projects  = var.vpc_sc.resource_discovery.ignore_projects
   include_projects = var.vpc_sc.resource_discovery.include_projects
@@ -62,11 +62,11 @@ module "vpc-sc-discovery" {
 # TODO(ludomagno): implement vpc accessible services via variable or factory file
 
 module "vpc-sc" {
-  source = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/vpc-sc?ref=v31.1.0"
+  source = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/vpc-sc?ref=v32.0.1"
   # only enable if the default perimeter is defined
   count         = var.vpc_sc.perimeter_default == null ? 0 : 1
-  access_policy = null
-  access_policy_create = {
+  access_policy = var.access_policy
+  access_policy_create = var.access_policy != null ? null : {
     parent = "organizations/${var.organization.id}"
     title  = "default"
   }
