@@ -14,13 +14,6 @@
  * limitations under the License.
  */
 
-variable "access_policy" {
-  # tfdoc:variable:source 0-bootstrap
-  description = "Access policy id for tenant-level VPC-SC configurations."
-  type        = number
-  default     = null
-}
-
 variable "automation" {
   # tfdoc:variable:source 0-bootstrap
   description = "Automation resources created by the bootstrap stage."
@@ -50,16 +43,6 @@ variable "folder_ids" {
   })
 }
 
-variable "logging" {
-  # tfdoc:variable:source 0-bootstrap
-  description = "Log writer identities for organization / folders."
-  type = object({
-    project_number    = string
-    writer_identities = map(string)
-  })
-  default = null
-}
-
 variable "organization" {
   # tfdoc:variable:source 0-bootstrap
   description = "Organization details."
@@ -80,26 +63,14 @@ variable "prefix" {
   }
 }
 
-variable "root_node" {
-  # tfdoc:variable:source 0-bootstrap
-  description = "Root node for the hierarchy, if running in tenant mode."
-  type        = string
-  default     = null
-  validation {
-    condition = (
-      var.root_node == null ||
-      startswith(coalesce(var.root_node, "-"), "folders/")
-    )
-    error_message = "Root node must be in folders/nnnnn format if specified."
-  }
-}
-
 variable "service_accounts" {
   # tfdoc:variable:source 1-resman
   description = "Automation service accounts that can assign the encrypt/decrypt roles on keys."
   type = object({
     data-platform-dev    = string
     data-platform-prod   = string
+    nsec                 = string
+    nsec-r               = string
     project-factory      = string
     project-factory-dev  = string
     project-factory-prod = string

@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ locals {
       )
     }
   }
-
   # list of locations with keys
   kms_locations = distinct(flatten([
     for k, v in var.kms_keys : v.locations
@@ -48,14 +47,18 @@ locals {
     }
   }
   project_services = [
+    "certificatemanager.googleapis.com",
     "cloudkms.googleapis.com",
+    "networkmanagement.googleapis.com",
+    "networksecurity.googleapis.com",
+    "privateca.googleapis.com",
     "secretmanager.googleapis.com",
     "stackdriver.googleapis.com"
   ]
 }
 
 module "folder" {
-  source        = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/folder?ref=v33.0.0"
+  source        = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/folder?ref=v34.1.0"
   parent        = "organizations/${var.organization.id}"
   name          = "Security"
   folder_create = var.folder_ids.security == null
