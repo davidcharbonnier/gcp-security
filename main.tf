@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,33 +15,72 @@
  */
 
 locals {
-  kms_keys = {
-    for k, v in var.kms_keys : k => {
-      iam    = coalesce(v.iam, {})
-      labels = coalesce(v.labels, {})
-      locations = (
-        v.locations == null
-        ? var.kms_defaults.locations
-        : v.locations
-      )
-      rotation_period = (
-        v.rotation_period == null
-        ? var.kms_defaults.rotation_period
-        : v.rotation_period
-      )
-    }
-  }
-  kms_locations = distinct(flatten([
-    for k, v in local.kms_keys : v.locations
+  has_env_folders = var.folder_ids.security-dev != null
+  iam_delegated = join(",", formatlist("'%s'", [
+    "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   ]))
-  kms_locations_keys = {
-    for loc in local.kms_locations : loc => {
-      for k, v in local.kms_keys : k => v if contains(v.locations, loc)
-    }
-  }
+  iam_delegated_principals = try(
+    var.stage_config["security"].iam_delegated_principals, {}
+  )
+  iam_viewer_principals = try(
+    var.stage_config["security"].iam_viewer_principals, {}
+  )
   project_services = [
+    "certificatemanager.googleapis.com",
     "cloudkms.googleapis.com",
+    # "networkmanagement.googleapis.com",
+    # "networksecurity.googleapis.com",
+    "privateca.googleapis.com",
     "secretmanager.googleapis.com",
     "stackdriver.googleapis.com"
   ]
+}
+
+module "folder" {
+  source        = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/folder?ref=v37.4.0"
+  folder_create = false
+  id            = var.folder_ids.security
+  contacts = (
+    var.essential_contacts == null
+    ? {}
+    : { (var.essential_contacts) = ["ALL"] }
+  )
+}
+
+module "project" {
+  source   = "git@github.com:GoogleCloudPlatform/cloud-foundation-fabric.git//modules/project?ref=v37.4.0"
+  for_each = var.environments
+  name     = "${each.value.short_name}-sec-core-0"
+  parent = coalesce(
+    var.folder_ids["security-${each.key}"], var.folder_ids.security
+  )
+  prefix          = var.prefix
+  billing_account = var.billing_account.id
+  labels          = { environment = each.key }
+  services        = local.project_services
+  tag_bindings = local.has_env_folders ? {} : {
+    environment = var.tag_values["environment/${each.value.tag_name}"]
+  }
+  # optionally delegate a fixed set of IAM roles to selected principals
+  iam = {
+    (var.custom_roles.project_iam_viewer) = try(
+      local.iam_viewer_principals[each.key], []
+    )
+  }
+  iam_bindings = (
+    lookup(local.iam_delegated_principals, each.key, null) == null ? {} : {
+      sa_delegated_grants = {
+        role    = "roles/resourcemanager.projectIamAdmin"
+        members = try(local.iam_delegated_principals[each.key], [])
+        condition = {
+          title       = "${each.key}_stage3_sa_delegated_grants"
+          description = "${var.environments[each.key].name} project delegated grants."
+          expression = format(
+            "api.getAttribute('iam.googleapis.com/modifiedGrantsByRole', []).hasOnly([%s])",
+            local.iam_delegated
+          )
+        }
+      }
+    }
+  )
 }
